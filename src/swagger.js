@@ -15,7 +15,7 @@ const swaggerDocument = {
   servers: [
     {
       url: 'http://localhost:5000',
-      url: "https://kinoteatr-3ntn.onrender.com/api-docs/",
+      url: "https://kinoteatr-1.onrender.com/",
     }
   ],
   components: {
