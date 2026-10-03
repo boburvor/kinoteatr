@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CineBook — Kinoteatr chiptalarini band qilish tizimi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <!-- NAVIGATSIYA -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand" onclick="app.showSection('movies')">
+        <div class="brand-icon">🎬</div>
+        <div class="brand-text">
+          <span class="brand-name">CineBook</span>
+          <span class="brand-badge">CINEMA</span>
+        </div>
+      </div>
+
+      <nav class="nav-links">
+        <button class="nav-btn active" id="nav-movies-btn" onclick="app.showSection('movies')">
+          <span class="icon">📽️</span> Filmlar
+        </button>
+        <button class="nav-btn" id="nav-bookings-btn" onclick="app.showSection('bookings')">
+          <span class="icon">🎟️</span> Mening chiptalarim
+          <span class="badge-count" id="my-bookings-count" style="display: none;">0</span>
+        </button>
+        <button class="nav-btn admin-nav-btn" id="nav-admin-btn" style="display: none;" onclick="app.showSection('admin')">
+          <span class="icon">🛡️</span> Admin Panel
+        </button>
+      </nav>
+
+      <div class="nav-actions">
+        <!-- Quick login dropdown for testing -->
+        <div class="quick-demo-wrapper">
+          <button class="btn-demo-toggle" id="demo-toggle-btn" title="Tezkor test foydalanuvchisi bilan kirish">
+            ⚡ Tezkor Test <span class="arrow-down">▾</span>
+          </button>
+          <div class="demo-dropdown" id="demo-dropdown">
+            <div class="demo-header">Tezkor hisob bilan kirish:</div>
+            <button class="demo-user-btn" onclick="app.quickLogin('ali')">
+              <span class="user-avatar-sm">A</span>
+              <div class="user-meta">
+                <strong>Ali Valiyev</strong>
+                <small>ali@example.com (Foydalanuvchi)</small>
+              </div>
+            </button>
+            <button class="demo-user-btn" onclick="app.quickLogin('vali')">
+              <span class="user-avatar-sm">V</span>
+              <div class="user-meta">
+                <strong>Vali Aliyev</strong>
+                <small>vali@example.com (Foydalanuvchi)</small>
+              </div>
+            </button>
+            <button class="demo-user-btn" onclick="app.quickLogin('admin')">
+              <span class="user-avatar-sm admin">🛡️</span>
+              <div class="user-meta">
+                <strong>Admin User</strong>
+                <small>admin@cinebook.uz (Admin roli)</small>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Mehmon holati -->
+        <div id="guest-controls" class="auth-buttons">
+          <button class="btn btn-outline" onclick="app.openAuthModal('login')">Kirish</button>
+          <button class="btn btn-primary" onclick="app.openAuthModal('register')">Ro'yxatdan o'tish</button>
+        </div>
+
+        <!-- Kirgan foydalanuvchi holati -->
+        <div id="user-controls" class="user-profile" style="display: none;">
+          <div class="user-info">
+            <div class="user-avatar" id="nav-user-avatar">U</div>
+            <div class="user-details">
+              <span class="user-name" id="nav-user-name">Foydalanuvchi</span>
+              <span class="user-role-badge" id="nav-user-role">user</span>
+            </div>
+          </div>
+          <button class="btn btn-icon-logout" onclick="app.logout()" title="Tizimdan chiqish">
+            🚪 Chiqish
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ASOSIY KONTENT -->
+  <main class="main-content">
+    
+    <!-- BANNER / HERO (Filmlar bo'limi uchun) -->
+    <section class="hero-banner" id="hero-banner">
+      <div class="hero-glow"></div>
+      <div class="hero-content">
+        <div class="hero-tag">🌟 KINO ZALLARIDA PREMYERALAR</div>
+        <h1 class="hero-title">Sevimli Filmlaringizga Qulay O'rindiqlarni Band Qiling</h1>
+        <p class="hero-subtitle">Jonli zal xaritasi, qulay o'rindiq tanlash va onlayn chiptalarni bir zumda olish imkoniyati.</p>
+        
+        <!-- Qidiruv va Filterlar -->
+        <div class="controls-bar">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="movie-search" placeholder="Film nomi yoki tavsif bo'yicha qidirish..." oninput="app.filterMovies()">
+          </div>
+
+          <div class="genre-filters" id="genre-filters">
+            <button class="genre-chip active" data-genre="" onclick="app.setGenreFilter('')">Barchasi</button>
+            <button class="genre-chip" data-genre="action" onclick="app.setGenreFilter('action')">Action</button>
+            <button class="genre-chip" data-genre="sci-fi" onclick="app.setGenreFilter('sci-fi')">Sci-Fi</button>
+          </div>
+
+          <div class="admin-actions" id="admin-actions-bar" style="display: none;">
+            <button class="btn btn-admin" onclick="app.showSection('admin')">
+              🛡️ Boshqaruv Paneliga O'tish
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1-BO'LIM: FILMLAR ROYXATI -->
+    <section id="section-movies" class="content-section">
+      <div class="section-header">
+        <h2 class="section-title">
+          <span>Hozirgi Seanslar</span>
+          <span class="section-badge" id="movies-count-badge">0 ta film</span>
+        </h2>
+        <div class="status-indicator">
+          <span class="live-dot"></span> Backend API faol (PORT 5000)
+        </div>
+      </div>
+
+      <div class="movies-grid" id="movies-container">
+        <!-- Dinamik filmlar joylashadi -->
+      </div>
+    </section>
+
+    <!-- 2-BO'LIM: MENING CHIPTALARIM -->
+    <section id="section-bookings" class="content-section" style="display: none;">
+      <div class="section-header">
+        <h2 class="section-title">
+          <span>Mening Chiptalarim</span>
+          <span class="section-badge" id="bookings-count-badge">0 ta chipta</span>
+        </h2>
+        <button class="btn btn-secondary-sm" onclick="app.loadMyBookings()">
+          🔄 Yangilash
+        </button>
+      </div>
+
+      <!-- Agar kirmagan bo'lsa -->
+      <div id="bookings-auth-required" class="empty-box" style="display: none;">
+        <div class="empty-icon">🔒</div>
+        <h3>Chiptalarni ko'rish uchun tizimga kiring</h3>
+        <p>Siz band qilgan joylar va elektron chiptalaringizni ko'rish uchun profilingizga kirishingiz lozim.</p>
+        <button class="btn btn-primary" onclick="app.openAuthModal('login')">Hozir Kirish</button>
+      </div>
+
+      <!-- Chiptalar mavjud bo'lmasa -->
+      <div id="bookings-empty" class="empty-box" style="display: none;">
+        <div class="empty-icon">🎟️</div>
+        <h3>Hozircha chiptalaringiz yo'q</h3>
+        <p>Hali birorta ham joy band qilmadingiz. Filmlar bo'limidan o'zingizga ma'qul seansni tanlang.</p>
+        <button class="btn btn-primary" onclick="app.showSection('movies')">Filmlarni ko'rish</button>
+      </div>
+
+      <!-- Chiptalar ro'yxati -->
+      <div class="tickets-grid" id="bookings-container">
+        <!-- Dinamik chiptalar -->
+      </div>
+    </section>
+
+    <!-- 3-BO'LIM: ADMIN BOSHQARUV PANELI (YANGILANGAN & KENGAYTIRILGAN) -->
+    <section id="section-admin" class="content-section" style="display: none;">
+      <div class="admin-header-card">
+        <div class="admin-title-wrap">
+          <div class="admin-shield-icon">🛡️</div>
+          <div>
+            <h2 class="admin-title">CineBook Ma'muriyat Markazi</h2>
+            <p class="admin-subtitle">Filmlar, seanslar, barcha chiptalar va zallarning to'liq monitoringi</p>
+          </div>
+        </div>
+        <div class="admin-top-actions">
+          <button class="btn btn-admin" onclick="app.openAddMovieModal()">
+            ➕ Film Qo'shish
+          </button>
+          <button class="btn btn-primary" onclick="app.openAddSessionModal()">
+            🕒 Seans Qo'shish
+          </button>
+          <button class="btn btn-outline" onclick="app.resetDatabase()">
+            🔄 Bazani Tiklash (Reset)
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI METRIKALARI -->
+      <div class="admin-kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-icon icon-movies">🎬</div>
+          <div class="kpi-content">
+            <span class="kpi-label">Jami Filmlar</span>
+            <strong class="kpi-value" id="kpi-movies">0</strong>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon icon-sessions">🕒</div>
+          <div class="kpi-content">
+            <span class="kpi-label">Jami Seanslar</span>
+            <strong class="kpi-value" id="kpi-sessions">0</strong>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon icon-bookings">🎟️</div>
+          <div class="kpi-content">
+            <span class="kpi-label">Band Chiptalar</span>
+            <strong class="kpi-value text-amber" id="kpi-bookings">0</strong>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon icon-revenue">💰</div>
+          <div class="kpi-content">
+            <span class="kpi-label">Jami Tushum</span>
+            <strong class="kpi-value text-success" id="kpi-revenue">0 so'm</strong>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon icon-users">👥</div>
+          <div class="kpi-content">
+            <span class="kpi-label">Foydalanuvchilar</span>
+            <strong class="kpi-value" id="kpi-users">0</strong>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon icon-occupancy">📈</div>
+          <div class="kpi-content">
+            <span class="kpi-label">Zallar Bandligi</span>
+            <strong class="kpi-value text-cyan" id="kpi-occupancy">0%</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADMIN SUB-TABS -->
+      <div class="admin-tabs">
+        <button class="admin-tab active" id="atab-movies" onclick="app.switchAdminTab('movies')">
+          📽️ Filmlar Boshqaruvi
+        </button>
+        <button class="admin-tab" id="atab-sessions" onclick="app.switchAdminTab('sessions')">
+          🕒 Seanslar Boshqaruvi
+        </button>
+        <button class="admin-tab" id="atab-bookings" onclick="app.switchAdminTab('bookings')">
+          🎟️ Barcha Chiptalar
+        </button>
+        <button class="admin-tab" id="atab-monitor" onclick="app.switchAdminTab('monitor')">
+          🪑 Jonli Zallar Monitori
+        </button>
+        <button class="admin-tab" id="atab-users" onclick="app.switchAdminTab('users')">
+          👥 Foydalanuvchilar
+        </button>
+      </div>
+
+      <!-- TAB 1: FILMLAR -->
+      <div id="admin-view-movies" class="admin-tab-pane">
+        <div class="admin-pane-header">
+          <h3>Filmlar Ro'yxati (<span id="admin-movies-count">0</span>)</h3>
+          <button class="btn btn-admin btn-sm" onclick="app.openAddMovieModal()">+ Yangi Film</button>
+        </div>
+        <div class="table-responsive">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Film Nomi</th>
+                <th>Janri</th>
+                <th>Davomiyligi</th>
+                <th>Tavsif</th>
+                <th>Amallar</th>
+              </tr>
+            </thead>
+            <tbody id="admin-movies-tbody">
+              <!-- Dinamik qatorlar -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 2: SEANSLAR -->
+      <div id="admin-view-sessions" class="admin-tab-pane" style="display: none;">
+        <div class="admin-pane-header">
+          <h3>Kinoteatr Seanslari (<span id="admin-sessions-count">0</span>)</h3>
+          <button class="btn btn-primary btn-sm" onclick="app.openAddSessionModal()">+ Yangi Seans</button>
+        </div>
+        <div class="table-responsive">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Film Nomi</th>
+                <th>Kinoteatr Zali</th>
+                <th>Seans Vaqti</th>
+                <th>O'lchami (Qator × O'rin)</th>
+                <th>Bandlik Holati</th>
+                <th>Amallar</th>
+              </tr>
+            </thead>
+            <tbody id="admin-sessions-tbody">
+              <!-- Dinamik qatorlar -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 3: BARCHA CHIPTALAR -->
+      <div id="admin-view-bookings" class="admin-tab-pane" style="display: none;">
+        <div class="admin-pane-header">
+          <div class="pane-title-wrap">
+            <h3>Barcha Band Qilingan Chiptalar (<span id="admin-bookings-count">0</span>)</h3>
+          </div>
+          <div class="admin-search-input">
+            <input type="text" id="admin-booking-search" placeholder="Mijoz ismi, email yoki film qidirish..." oninput="app.filterAdminBookings()">
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Chipta ID</th>
+                <th>Foydalanuvchi</th>
+                <th>Film Nomi</th>
+                <th>Zal & Seans</th>
+                <th>Qator / Joy</th>
+                <th>Band Qilingan Sana</th>
+                <th>Amal</th>
+              </tr>
+            </thead>
+            <tbody id="admin-bookings-tbody">
+              <!-- Dinamik qatorlar -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 4: JONLI ZAL MONITORI -->
+      <div id="admin-view-monitor" class="admin-tab-pane" style="display: none;">
+        <div class="monitor-controls-card">
+          <div class="monitor-select-wrap">
+            <label>Nazorat qilish uchun seansni tanlang:</label>
+            <select id="admin-monitor-session-select" onchange="app.loadAdminMonitorSession(this.value)">
+              <!-- Dinamik seanslar ro'yxati -->
+            </select>
+          </div>
+          <button class="btn btn-secondary-sm" onclick="app.refreshAdminMonitor()">
+            🔄 Jonli Yangilash
+          </button>
+        </div>
+
+        <div id="admin-monitor-hall-area">
+          <!-- Monitor xaritasi bu yerga chiqadi -->
+        </div>
+      </div>
+
+      <!-- TAB 5: FOYDALANUVCHILAR -->
+      <div id="admin-view-users" class="admin-tab-pane" style="display: none;">
+        <div class="admin-pane-header">
+          <h3>Ro'yxatdan O'tgan Foydalanuvchilar (<span id="admin-users-count">0</span>)</h3>
+        </div>
+        <div class="table-responsive">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Ism va Familiya</th>
+                <th>Email Manzil</th>
+                <th>Tizimdagi Roli</th>
+                <th>Band Qilgan Chiptalari</th>
+                <th>Ro'yxatdan O'tgan Sana</th>
+              </tr>
+            </thead>
+            <tbody id="admin-users-tbody">
+              <!-- Dinamik qatorlar -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: JOY TANLASH VA BAND QILISH -->
+  <div class="modal-backdrop" id="seat-modal" style="display: none;">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="film-tag" id="modal-movie-genre">Sci-Fi</div>
+          <h2 class="modal-title" id="modal-movie-title">Film Nomi</h2>
+          <div class="modal-meta" id="modal-movie-meta">Davomiyligi: 148 daqiqa</div>
+        </div>
+        <button class="modal-close" onclick="app.closeSeatModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Seans tanlagich (agar bir nechta seans bo'lsa) -->
+        <div class="session-selector-wrap">
+          <label class="session-label">Seansni tanlang:</label>
+          <div class="session-pills" id="modal-session-pills">
+            <!-- Seans tugmalari dinamik chiqadi -->
+          </div>
+        </div>
+
+        <!-- Seans tafsilotlari -->
+        <div class="hall-summary-card">
+          <div class="hall-stat">
+            <span class="stat-label">Kinoteatr Zali</span>
+            <strong class="stat-val" id="hall-name">Zal A</strong>
+          </div>
+          <div class="hall-stat">
+            <span class="stat-label">Vaqt</span>
+            <strong class="stat-val" id="session-time">18:00</strong>
+          </div>
+          <div class="hall-stat">
+            <span class="stat-label">Bo'sh O'rindiqlar</span>
+            <strong class="stat-val text-success" id="hall-available-count">39 / 40</strong>
+          </div>
+          <div class="hall-stat">
+            <span class="stat-label">Chipta narxi</span>
+            <strong class="stat-val text-amber">50 000 so'm</strong>
+          </div>
+        </div>
+
+        <!-- O'rindiqlar afsonasi (Legend) -->
+        <div class="seats-legend">
+          <div class="legend-item">
+            <span class="seat-sample seat-available"></span>
+            <span>Bo'sh joy</span>
+          </div>
+          <div class="legend-item">
+            <span class="seat-sample seat-selected"></span>
+            <span>Siz tanlagan</span>
+          </div>
+          <div class="legend-item">
+            <span class="seat-sample seat-taken"></span>
+            <span>Band qilingan</span>
+          </div>
+        </div>
+
+        <!-- KINOTEATR EKRANI -->
+        <div class="screen-container">
+          <div class="screen-curve"></div>
+          <div class="screen-glow"></div>
+          <span class="screen-text">EKRAN (SCREEN)</span>
+        </div>
+
+        <!-- ZAL XARITASI (GRID) -->
+        <div class="hall-grid-wrapper">
+          <div class="hall-grid" id="seats-grid">
+            <!-- Dinamik o'rindiqlar -->
+          </div>
+        </div>
+
+        <!-- Limit xabarnomasi -->
+        <div class="seat-notice">
+          ℹ️ <strong>Qoida:</strong> Bitta foydalanuvchi bitta seans uchun ko'pi bilan <strong>4 ta</strong> joy band qila oladi.
+        </div>
+
+        <!-- Tanlov xulosasi va buyurtma paneli -->
+        <div class="booking-checkout-bar">
+          <div class="selected-seats-info">
+            <div class="info-label">Tanlangan joylar:</div>
+            <div class="selected-chips" id="selected-seats-chips">
+              <span class="no-selection-text">O'rindiq tanlanmadi</span>
+            </div>
+          </div>
+          <div class="checkout-actions">
+            <div class="total-price-box">
+              <span class="price-label">Jami to'lov:</span>
+              <span class="price-val" id="total-price">0 so'm</span>
+            </div>
+            <button class="btn btn-primary btn-booking" id="confirm-booking-btn" onclick="app.confirmBooking()" disabled>
+              Joyni Band Qilish
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AUTENTIFIKATSIYA (KIRISH VA RO'YXATDAN O'TISH) -->
+  <div class="modal-backdrop" id="auth-modal" style="display: none;">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h3 class="modal-title" id="auth-modal-title">Tizimga kirish</h3>
+        <button class="modal-close" onclick="app.closeAuthModal()">✕</button>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="app.switchAuthTab('login')">Kirish</button>
+        <button class="auth-tab" id="tab-register" onclick="app.switchAuthTab('register')">Ro'yxatdan o'tish</button>
+      </div>
+
+      <div class="modal-body auth-modal-body">
+        <!-- Tezkor to'ldirish tugmalari -->
+        <div class="quick-fill-box">
+          <span class="quick-title">⚡ Bir bosishda to'ldirish:</span>
+          <div class="quick-fill-buttons">
+            <button type="button" class="btn-chip" onclick="app.fillAuth('ali')">Ali (User)</button>
+            <button type="button" class="btn-chip" onclick="app.fillAuth('vali')">Vali (User)</button>
+            <button type="button" class="btn-chip" onclick="app.fillAuth('admin')">Admin</button>
+          </div>
+        </div>
+
+        <!-- Kirish Formasi -->
+        <form id="login-form" onsubmit="app.handleLogin(event)">
+          <div class="form-group">
+            <label>Email manzil</label>
+            <input type="email" id="login-email" required placeholder="ali@example.com">
+          </div>
+          <div class="form-group">
+            <label>Parol</label>
+            <input type="password" id="login-password" required placeholder="Parolingizni kiriting">
+          </div>
+          <div class="form-error" id="login-error" style="display: none;"></div>
+          <button type="submit" class="btn btn-primary btn-block" id="login-submit-btn">
+            Kirish
+          </button>
+        </form>
+
+        <!-- Ro'yxatdan o'tish Formasi -->
+        <form id="register-form" style="display: none;" onsubmit="app.handleRegister(event)">
+          <div class="form-group">
+            <label>Ism va familiya</label>
+            <input type="text" id="register-name" required placeholder="Ali Valiyev">
+          </div>
+          <div class="form-group">
+            <label>Email manzil</label>
+            <input type="email" id="register-email" required placeholder="yangi_user@example.com">
+          </div>
+          <div class="form-group">
+            <label>Parol (kamida 6 belgi)</label>
+            <input type="password" id="register-password" required minlength="6" placeholder="Parol yarating">
+          </div>
+          <div class="form-error" id="register-error" style="display: none;"></div>
+          <button type="submit" class="btn btn-primary btn-block" id="register-submit-btn">
+            Ro'yxatdan o'tish
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADMIN - YANGA FILM QO'SHISH -->
+  <div class="modal-backdrop" id="admin-movie-modal" style="display: none;">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h3 class="modal-title">🎬 Yangi Film Qo'shish</h3>
+        <button class="modal-close" onclick="app.closeAddMovieModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="add-movie-form" onsubmit="app.handleAddMovie(event)">
+          <div class="form-group">
+            <label>Film nomi (Title)</label>
+            <input type="text" id="new-movie-title" required placeholder="Masalan: Avatar 3">
+          </div>
+          <div class="form-group">
+            <label>Janri (Genre)</label>
+            <input type="text" id="new-movie-genre" required placeholder="sci-fi, action, drama...">
+          </div>
+          <div class="form-group">
+            <label>Davomiyligi (daqiqada)</label>
+            <input type="number" id="new-movie-duration" required min="30" max="300" placeholder="150">
+          </div>
+          <div class="form-group">
+            <label>Tavsifi (Description)</label>
+            <textarea id="new-movie-desc" rows="3" placeholder="Film haqida qisqacha ma'lumot..."></textarea>
+          </div>
+          <div class="form-error" id="admin-movie-error" style="display: none;"></div>
+          <button type="submit" class="btn btn-admin btn-block" id="add-movie-btn">
+            Film Qo'shish
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADMIN - YANGI SEANS QO'SHISH -->
+  <div class="modal-backdrop" id="admin-session-modal" style="display: none;">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h3 class="modal-title">🕒 Yangi Seans Qo'shish</h3>
+        <button class="modal-close" onclick="app.closeAddSessionModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="add-session-form" onsubmit="app.handleAddSession(event)">
+          <div class="form-group">
+            <label>Film tanlang</label>
+            <select id="new-session-movie-id" required>
+              <!-- Dinamik options -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Kinoteatr Zali</label>
+            <select id="new-session-hall" required>
+              <option value="A">Zal A (Standart)</option>
+              <option value="B">Zal B (Komfort)</option>
+              <option value="C">Zal C (Kichik)</option>
+              <option value="IMAX">IMAX Zali</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Seans Sana va Vaqti</label>
+            <input type="datetime-local" id="new-session-time" required>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>Qatorlar (rows)</label>
+              <input type="number" id="new-session-rows" value="5" min="2" max="15" required>
+            </div>
+            <div class="form-group">
+              <label>Qatordagi o'rinlar</label>
+              <input type="number" id="new-session-seats" value="8" min="4" max="25" required>
+            </div>
+          </div>
+          <div class="form-error" id="admin-session-error" style="display: none;"></div>
+          <button type="submit" class="btn btn-primary btn-block" id="add-session-btn">
+            Seansni Qo'shish
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST XABARNOMALAR -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <span class="brand-icon">🎬</span> CineBook API & Web App
+      </div>
+      <div class="footer-links">
+        <a href="javascript:void(0)" onclick="app.showSection('movies')">Filmlar</a>
+        <span>•</span>
+        <a href="javascript:void(0)" onclick="app.showSection('bookings')">Mening chiptalarim</a>
+      </div>
+      <div class="footer-copy">
+        © 2026 CineBook Kinoteatr tizimi. Barcha huquqlar himoyalangan.
+      </div>
+    </div>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>
